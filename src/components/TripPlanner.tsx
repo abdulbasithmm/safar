@@ -739,14 +739,14 @@ export default function TripPlanner({ heroTrigger }: TripPlannerProps) {
           <div
             role="tablist"
             aria-label="Trip planner views"
-            className="inline-flex items-center gap-1 rounded-full bg-black/[0.04] p-1 self-start md:self-auto"
+            className="inline-flex flex-wrap sm:flex-nowrap items-center gap-1 max-w-full rounded-[20px] sm:rounded-full bg-black/[0.04] p-1 self-start md:self-auto"
           >
             <button
               type="button"
               role="tab"
               aria-selected={activeTab === 'plan'}
               onClick={() => setActiveTab('plan')}
-              className={`cursor-pointer rounded-full px-4 py-2 font-sans text-xs font-medium uppercase tracking-[0.04em] transition-colors whitespace-nowrap ${
+              className={`cursor-pointer rounded-full px-3 sm:px-4 py-2 font-sans text-[11px] sm:text-xs font-medium uppercase tracking-[0.04em] transition-colors whitespace-nowrap ${
                 activeTab === 'plan'
                   ? 'bg-wandor-dark text-[#fafafa]'
                   : 'bg-transparent text-wandor-text hover:opacity-65'
@@ -760,7 +760,7 @@ export default function TripPlanner({ heroTrigger }: TripPlannerProps) {
               aria-selected={activeTab === 'itinerary'}
               disabled={!activePlan}
               onClick={() => activePlan && setActiveTab('itinerary')}
-              className={`cursor-pointer rounded-full px-4 py-2 font-sans text-xs font-medium uppercase tracking-[0.04em] transition-colors whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed ${
+              className={`cursor-pointer rounded-full px-3 sm:px-4 py-2 font-sans text-[11px] sm:text-xs font-medium uppercase tracking-[0.04em] transition-colors whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed ${
                 activeTab === 'itinerary'
                   ? 'bg-wandor-dark text-[#fafafa]'
                   : 'bg-transparent text-wandor-text hover:opacity-65'
@@ -773,7 +773,7 @@ export default function TripPlanner({ heroTrigger }: TripPlannerProps) {
               role="tab"
               aria-selected={activeTab === 'trips'}
               onClick={() => setActiveTab('trips')}
-              className={`cursor-pointer rounded-full px-4 py-2 font-sans text-xs font-medium uppercase tracking-[0.04em] transition-colors whitespace-nowrap ${
+              className={`cursor-pointer rounded-full px-3 sm:px-4 py-2 font-sans text-[11px] sm:text-xs font-medium uppercase tracking-[0.04em] transition-colors whitespace-nowrap ${
                 activeTab === 'trips'
                   ? 'bg-wandor-dark text-[#fafafa]'
                   : 'bg-transparent text-wandor-text hover:opacity-65'

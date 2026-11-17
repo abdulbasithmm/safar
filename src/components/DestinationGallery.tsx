@@ -266,7 +266,7 @@ export default function DestinationGallery({
                   {searchLoading
                     ? `Fetching real photographs for ${activeSearchQuery}...`
                     : searchResult
-                      ? `${searchResult.photos.length} verified photographs via ${searchResult.provider === 'wikimedia' ? 'Wikimedia Commons' : searchResult.provider === 'unsplash' ? 'Unsplash' : 'Pexels'}`
+                      ? `${searchResult.photos.length} verified ${searchResult.photos.length === 1 ? 'photograph' : 'photographs'} via ${searchResult.provider === 'wikimedia' ? 'Wikimedia Commons' : searchResult.provider === 'unsplash' ? 'Unsplash' : 'Pexels'}`
                       : ''}
                 </p>
               </div>

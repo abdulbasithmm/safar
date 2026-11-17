@@ -288,7 +288,7 @@ export default function DestinationDetailModal({
                   onPlanDestination(target.name);
                   onClose();
                 }}
-                className="cursor-pointer shrink-0 rounded-full bg-wandor-dark px-5 py-2.5 text-xs font-medium uppercase tracking-[0.04em] text-[#fafafa] hover:bg-[#333] transition-colors"
+                className="cursor-pointer shrink-0 max-w-full text-center rounded-full bg-wandor-dark px-5 py-2.5 text-xs font-medium uppercase tracking-[0.04em] text-[#fafafa] hover:bg-[#333] transition-colors"
               >
                 Plan a Trip to {target.name}
               </button>
