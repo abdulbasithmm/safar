@@ -4,6 +4,8 @@
  */
 
 import { useEffect, useState } from 'react';
+import DestinationGallery from '@/components/DestinationGallery';
+import Footer from '@/components/Footer';
 import Hero from '@/components/Hero';
 import TripPlanner from '@/components/TripPlanner';
 import type { HeroTriggerPayload } from '@/components/TripPlanner';
@@ -56,6 +58,27 @@ export default function App() {
           }}
         />
         <TripPlanner heroTrigger={heroTrigger} />
+        <DestinationGallery
+          onSelectDestinationForTrip={(destinationName) => {
+            setHeroTrigger({
+              id: Date.now(),
+              prompt: '',
+              mode: 'plan',
+              destination: destinationName,
+            });
+            scrollToPlanner();
+          }}
+        />
+        <Footer
+          onPlanClick={() => {
+            setHeroTrigger({ id: Date.now(), prompt: '', mode: 'plan' });
+            scrollToPlanner();
+          }}
+          onTripsClick={() => {
+            setHeroTrigger({ id: Date.now(), prompt: '', mode: 'trips' });
+            scrollToPlanner();
+          }}
+        />
       </div>
     </AuthProvider>
   );

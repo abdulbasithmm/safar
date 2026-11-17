@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import {
   Calendar,
+  Camera,
   Clock,
   Compass,
   MapPin,
@@ -14,10 +15,14 @@ import {
   Wallet,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import DestinationDetailModal from '@/components/DestinationDetailModal';
+import type { DestinationDetailTarget } from '@/components/DestinationDetailModal';
 import ItineraryMap, { buildScheduleStopId } from '@/components/ItineraryMap';
 import type { DayMapTrigger } from '@/components/ItineraryMap';
+import ResponsivePhoto from '@/components/ResponsivePhoto';
 import { AIClientError, sendAiChatMessage } from '@/services/aiService';
 import type { ChatTurn } from '@/services/aiService';
+import { searchDestinationPhotos } from '@/services/photoService';
 import {
   deleteUserTrip,
   formatFirestoreTripError,
@@ -26,6 +31,7 @@ import {
   subscribeToUserTrips,
   updateUserTrip,
 } from '@/services/tripService';
+import type { DestinationPhoto } from '@/types/photo';
 import type {
   BudgetBreakdown,
   CurrencyCode,
@@ -41,6 +47,7 @@ export interface HeroTriggerPayload {
   id: number;
   prompt: string;
   mode: 'plan' | 'trips';
+  destination?: string;
 }
 
 interface TripPlannerProps {
@@ -81,6 +88,12 @@ const CURRENCIES: Array<{ code: CurrencyCode; symbol: string; label: string }> =
   { code: 'USD', symbol: '$', label: 'USD ($)' },
   { code: 'EUR', symbol: '€', label: 'EUR (€)' },
 ];
+
+const GENERATION_LOADING_MESSAGES = [
+  'SAFAR is planning your journey...',
+  'Creating your personalized travel experience...',
+  'Your SAFAR itinerary is almost ready.',
+] as const;
 
 function formatMoney(amount: number, currency: CurrencyCode): string {
   const symbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : '₹';
@@ -151,6 +164,7 @@ export default function TripPlanner({ heroTrigger }: TripPlannerProps) {
 
   // Operation status & errors
   const [isGenerating, setIsGenerating] = useState(false);
+  const [loadingStageIndex, setLoadingStageIndex] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
   const [errorState, setErrorState] = useState<PlannerErrorState | null>(null);
@@ -161,6 +175,15 @@ export default function TripPlanner({ heroTrigger }: TripPlannerProps) {
   const [selectedMapStopId, setSelectedMapStopId] = useState<string | null>(null);
   const [highlightedSlotId, setHighlightedSlotId] = useState<string | null>(null);
   const [mapDayTrigger, setMapDayTrigger] = useState<DayMapTrigger | null>(null);
+
+  // Connected destination & attraction photography state
+  const [destPhotos, setDestPhotos] = useState<DestinationPhoto[]>([]);
+  const [destPhotosLoading, setDestPhotosLoading] = useState(false);
+  const [attractionPhotos, setAttractionPhotos] = useState<
+    Record<string, DestinationPhoto | null>
+  >({});
+  const [photoModalTarget, setPhotoModalTarget] =
+    useState<DestinationDetailTarget | null>(null);
 
   const focusDayOnMap = (dayNumber: number) => {
     setSelectedMapDay(dayNumber);
@@ -210,18 +233,102 @@ export default function TripPlanner({ heroTrigger }: TripPlannerProps) {
     }
   }, [departureDate, returnDate]);
 
-  // Handle triggers from Hero nav / prompt card
+  // Cycle SAFAR staged loading messages while itinerary generates
+  useEffect(() => {
+    if (!isGenerating) {
+      setLoadingStageIndex(0);
+      return;
+    }
+    const timer = window.setInterval(() => {
+      setLoadingStageIndex((prev) =>
+        prev < GENERATION_LOADING_MESSAGES.length - 1 ? prev + 1 : prev,
+      );
+    }, 3500);
+    return () => window.clearInterval(timer);
+  }, [isGenerating]);
+
+  // Handle triggers from Hero nav / prompt card / Destination Gallery
   useEffect(() => {
     if (!heroTrigger) return;
     if (heroTrigger.mode === 'trips') {
       setActiveTab('trips');
       return;
     }
+    if (heroTrigger.destination) {
+      setDestination(heroTrigger.destination);
+      setActiveTab('plan');
+    }
     if (heroTrigger.prompt) {
       setPromptNotes(heroTrigger.prompt);
       setActiveTab('plan');
     }
   }, [heroTrigger]);
+
+  // Fetch real destination & attraction photography when active itinerary changes
+  useEffect(() => {
+    if (!activePlan?.destination) {
+      setDestPhotos([]);
+      setAttractionPhotos({});
+      return;
+    }
+
+    const controller = new AbortController();
+    const destQuery =
+      activeInput?.destination?.trim() || activePlan.destination.trim();
+
+    setDestPhotosLoading(true);
+    setDestPhotos([]);
+    setAttractionPhotos({});
+
+    searchDestinationPhotos(
+      { query: destQuery, limit: 8 },
+      controller.signal,
+    )
+      .then((res) => {
+        if (!controller.signal.aborted) {
+          setDestPhotos(res.photos);
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setDestPhotos([]);
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setDestPhotosLoading(false);
+        }
+      });
+
+    const topAttractions = activePlan.attractions.slice(0, 6);
+    Promise.all(
+      topAttractions.map(async (attr) => {
+        try {
+          const res = await searchDestinationPhotos(
+            {
+              query: attr.name,
+              context: destQuery,
+              category: 'landmarks',
+              limit: 2,
+            },
+            controller.signal,
+          );
+          return [attr.name, res.photos[0] ?? null] as const;
+        } catch {
+          return [attr.name, null] as const;
+        }
+      }),
+    ).then((entries) => {
+      if (controller.signal.aborted) return;
+      const mapped: Record<string, DestinationPhoto | null> = {};
+      for (const [name, photo] of entries) {
+        mapped[name] = photo;
+      }
+      setAttractionPhotos(mapped);
+    });
+
+    return () => controller.abort();
+  }, [activePlan, activeInput]);
 
   const toggleInterest = (interest: string) => {
     setInterests((prev) =>
@@ -622,7 +729,7 @@ export default function TripPlanner({ heroTrigger }: TripPlannerProps) {
         <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between pb-8 border-b border-black/10">
           <div>
             <p className="font-sans text-xs font-semibold uppercase tracking-[0.08em] text-wandor-prompt mb-2">
-              Wandor Trip Studio
+              SAFAR Trip Studio · سفر
             </p>
             <h2 className="font-sans text-[clamp(28px,3.6vw,42px)] font-medium tracking-[-0.03em] text-wandor-text leading-tight">
               Plan, budget &amp; save your journey
@@ -937,10 +1044,34 @@ export default function TripPlanner({ heroTrigger }: TripPlannerProps) {
                 maxLength={2000}
                 value={promptNotes}
                 onChange={(e) => setPromptNotes(e.target.value)}
-                placeholder="Tell Wandor anything specific — e.g., vegetarian cafes, kid-friendly pacing, avoiding weekend crowds, or write in മലയാളം..."
+                placeholder="Tell Safar anything specific — e.g., vegetarian cafes, kid-friendly pacing, avoiding weekend crowds, or write in മലയാളം..."
                 className="rounded-2xl border border-black/15 bg-white px-4 py-3 text-sm text-wandor-text outline-none focus:border-black resize-y"
               />
             </label>
+
+            {isGenerating && (
+              <div
+                role="status"
+                aria-live="polite"
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-black/10 bg-black/[0.03] px-5 py-4"
+              >
+                <div className="space-y-0.5">
+                  <p className="text-sm font-medium text-wandor-text">
+                    {GENERATION_LOADING_MESSAGES[loadingStageIndex]}
+                  </p>
+                  <p className="text-xs text-wandor-muted">
+                    {loadingStageIndex === 0
+                      ? 'Preparing routes, visiting hours, and local recommendations.'
+                      : loadingStageIndex === 1
+                        ? 'Balancing travel times and realistic budget estimates.'
+                        : 'Finalizing your Safar schedule and map stops.'}
+                  </p>
+                </div>
+                <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-wandor-prompt shrink-0">
+                  SAFAR · سفر
+                </span>
+              </div>
+            )}
 
             <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
               <p className="text-xs text-wandor-muted">
@@ -954,7 +1085,7 @@ export default function TripPlanner({ heroTrigger }: TripPlannerProps) {
                 disabled={isGenerating || authLoading}
                 className="cursor-pointer rounded-full bg-wandor-dark px-7 py-3.5 font-sans text-sm font-medium uppercase tracking-[0.04em] text-[#fafafa] transition-all hover:bg-[#333] active:scale-95 disabled:opacity-60"
               >
-                {isGenerating ? 'Generating Itinerary...' : 'Generate Itinerary'}
+                {isGenerating ? 'SAFAR is planning...' : 'Generate Itinerary'}
               </button>
             </div>
           </form>
@@ -1050,6 +1181,73 @@ export default function TripPlanner({ heroTrigger }: TripPlannerProps) {
                   className="w-full rounded-xl border border-black/10 bg-black/[0.02] px-4 py-2.5 text-sm text-wandor-text outline-none focus:border-black/30"
                 />
               </label>
+
+              {/* Connected Destination Photo Gallery Strip */}
+              {(destPhotosLoading || destPhotos.length > 0) && (
+                <div className="pt-4 border-t border-black/10 space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.04em] text-wandor-muted">
+                      <Camera className="w-3.5 h-3.5 text-wandor-prompt" />
+                      Destination Photography · {activePlan.destination}
+                    </span>
+                    {destPhotos.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPhotoModalTarget({
+                            name: activePlan.destination,
+                            query:
+                              activeInput?.destination?.trim() ||
+                              activePlan.destination,
+                            initialPhotos: destPhotos,
+                          })
+                        }
+                        className="cursor-pointer text-xs font-medium text-wandor-prompt hover:underline"
+                      >
+                        View Gallery ({destPhotos.length})
+                      </button>
+                    )}
+                  </div>
+
+                  {destPhotosLoading ? (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {Array.from({ length: 4 }).map((_, idx) => (
+                        <div
+                          key={idx}
+                          className="aspect-[4/3] rounded-xl animate-pulse bg-black/[0.06]"
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {destPhotos.slice(0, 4).map((photo, idx) => (
+                        <button
+                          key={photo.id}
+                          type="button"
+                          onClick={() =>
+                            setPhotoModalTarget({
+                              name: activePlan.destination,
+                              query:
+                                activeInput?.destination?.trim() ||
+                                activePlan.destination,
+                              initialPhotos: destPhotos,
+                              initialIndex: idx,
+                            })
+                          }
+                          className="cursor-pointer group rounded-xl overflow-hidden border border-black/10 text-left"
+                        >
+                          <ResponsivePhoto
+                            photo={photo}
+                            fallbackLabel={photo.title}
+                            aspectClassName="aspect-[4/3]"
+                            sizes="(max-width: 768px) 45vw, 240px"
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Budget Planner */}
@@ -1268,20 +1466,69 @@ export default function TripPlanner({ heroTrigger }: TripPlannerProps) {
                     Key Attractions
                   </h3>
                 </div>
-                <div className="space-y-4">
-                  {activePlan.attractions.map((item, idx) => (
-                    <div key={`${item.name}-${idx}`} className="space-y-1">
-                      <p className="text-sm font-medium text-wandor-text">
-                        {item.name}
-                      </p>
-                      <p className="text-xs text-wandor-muted">
-                        Best time: {item.bestTimeToVisit} · {item.estimatedDuration}
-                      </p>
-                      <p className="text-xs text-wandor-muted leading-relaxed">
-                        {item.description}
-                      </p>
-                    </div>
-                  ))}
+                <div className="space-y-5">
+                  {activePlan.attractions.map((item, idx) => {
+                    const attrPhoto = attractionPhotos[item.name] ?? null;
+                    return (
+                      <div key={`${item.name}-${idx}`} className="space-y-2">
+                        {attrPhoto && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setPhotoModalTarget({
+                                name: item.name,
+                                query: `${item.name} ${activePlan.destination}`,
+                                subtitle: `Recommended in ${activePlan.destination}`,
+                                category: 'landmarks',
+                                initialPhotos: [attrPhoto],
+                              })
+                            }
+                            className="cursor-pointer group block w-full rounded-xl overflow-hidden border border-black/10 text-left"
+                          >
+                            <ResponsivePhoto
+                              photo={attrPhoto}
+                              fallbackLabel={item.name}
+                              aspectClassName="aspect-[16/10]"
+                              sizes="(max-width: 1024px) 90vw, 340px"
+                            />
+                          </button>
+                        )}
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium text-wandor-text">
+                            {item.name}
+                          </p>
+                          <p className="text-xs text-wandor-muted">
+                            Best time: {item.bestTimeToVisit} · {item.estimatedDuration}
+                          </p>
+                          <p className="text-xs text-wandor-muted leading-relaxed">
+                            {item.description}
+                          </p>
+                          {attrPhoto && (
+                            <p className="text-[11px] text-wandor-muted">
+                              Photo by{' '}
+                              <a
+                                href={attrPhoto.attribution.photographerUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline hover:text-wandor-text"
+                              >
+                                {attrPhoto.attribution.photographerName}
+                              </a>{' '}
+                              on{' '}
+                              <a
+                                href={attrPhoto.attribution.sourceUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline hover:text-wandor-text"
+                              >
+                                {attrPhoto.attribution.sourceName}
+                              </a>
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1351,7 +1598,7 @@ export default function TripPlanner({ heroTrigger }: TripPlannerProps) {
 
               <div className="rounded-[24px] border border-black/10 p-6 space-y-4">
                 <h3 className="text-base font-medium text-wandor-text">
-                  Ask Wandor AI Follow-Ups (English / മലയാളം)
+                  Ask SAFAR AI Follow-Ups (English / മലയാളം)
                 </h3>
 
                 {chatHistory.length > 0 && (
@@ -1429,7 +1676,7 @@ export default function TripPlanner({ heroTrigger }: TripPlannerProps) {
                   Sign in to view and manage your saved trips
                 </p>
                 <p className="text-sm text-wandor-muted max-w-md mx-auto">
-                  Your itineraries and budget plans are securely stored in your private Wandor account.
+                  Your itineraries and budget plans are securely stored in your private Safar account.
                 </p>
                 <button
                   type="button"
@@ -1544,6 +1791,11 @@ export default function TripPlanner({ heroTrigger }: TripPlannerProps) {
           </div>
         )}
       </div>
+
+      <DestinationDetailModal
+        target={photoModalTarget}
+        onClose={() => setPhotoModalTarget(null)}
+      />
     </section>
   );
 }

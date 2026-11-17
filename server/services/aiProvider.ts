@@ -592,7 +592,7 @@ export class OpenAITravelPlannerProvider implements TravelPlannerAIProvider {
         : 'Write ALL descriptive text values in clear, practical English. Keep JSON keys in English.';
 
     const instructions =
-      'You are Wandor, an expert bilingual (Malayalam & English) travel itinerary and budget planner. ' +
+      'You are SAFAR (Safar), an expert bilingual (Malayalam & English) travel itinerary and budget planner. ' +
       `${languageDirective} ` +
       'CRITICAL ACCURACY RULES: ' +
       '1) NEVER invent or claim live real-time hotel prices, live room availability, or live flight seat/fare availability. Provide clearly labeled approximate planning estimates only. ' +
@@ -720,7 +720,7 @@ export class OpenAITravelPlannerProvider implements TravelPlannerAIProvider {
       : '';
 
     const instructions =
-      'You are Wandor, an intelligent, warm, practical bilingual (Malayalam & English) travel planning assistant. ' +
+      'You are SAFAR (Safar), an intelligent, warm, practical bilingual (Malayalam & English) travel planning assistant. ' +
       `${languageDirective} ` +
       'Never invent live hotel prices or live flight availability; use approximate ranges when estimating costs. ' +
       'Help the user refine itineraries, answer follow-up questions using conversation context, suggest food, hidden spots, routes, visiting hours, and crowd-avoidance advice.' +

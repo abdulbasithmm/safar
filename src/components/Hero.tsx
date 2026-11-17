@@ -98,9 +98,18 @@ export default function Hero({ onPlanRequest, onOpenTrips }: HeroProps) {
 
       <div className="relative z-[2] max-w-[1360px] mx-auto">
         <nav className="relative flex items-center justify-between px-20 pt-6 pb-4 max-md:px-6 max-md:pt-5">
-          <span className="font-display text-[40px] max-md:text-[32px] text-black leading-none select-none">
-            wandor
-          </span>
+          <div className="flex items-baseline gap-2.5 select-none">
+            <span className="font-display text-[38px] max-md:text-[30px] text-black leading-none">
+              SAFAR
+            </span>
+            <span
+              lang="ar"
+              dir="rtl"
+              className="font-sans text-lg max-md:text-base font-medium text-wandor-muted leading-none"
+            >
+              سفر
+            </span>
+          </div>
 
           <div className="absolute left-1/2 -translate-x-1/2 flex gap-8 max-md:hidden">
             <NavButton label="Discover" onClick={onOpenTrips} />
@@ -131,9 +140,9 @@ export default function Hero({ onPlanRequest, onOpenTrips }: HeroProps) {
           <h1 className="font-sans text-[clamp(40px,6vw,68px)] font-medium text-wandor-text leading-[1.05] tracking-[-0.04em] max-w-[820px] mb-5">
             Where will you go next?
           </h1>
-          <p className="font-sans text-xl font-medium text-wandor-muted leading-relaxed max-w-[500px] mb-10">
-            Tell our AI where you&apos;re going and what you love. We&apos;ll
-            create a personalized itinerary for you.
+          <p className="font-sans text-xl font-medium text-wandor-muted leading-relaxed max-w-[520px] mb-10">
+            Your Journey, Your Story. Tell Safar where you&apos;re going and what
+            you love — we&apos;ll create a personalized itinerary for you.
           </p>
 
           <div className="relative w-[701px] max-md:w-[calc(100vw-48px)] min-h-[208px] bg-white/[0.06] border-[3px] border-white rounded-[44px] shadow-[0_0_4px_0_rgba(0,0,0,0.15)] overflow-hidden backdrop-blur-[20px]">

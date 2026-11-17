@@ -32,7 +32,7 @@ function sanitizeFilename(raw: string): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 60);
-  return cleaned || 'wandor-itinerary';
+  return cleaned || 'safar-itinerary';
 }
 
 function formatMoneyAscii(amount: number, currency: CurrencyCode): string {
@@ -160,7 +160,7 @@ function generateVectorPdf(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
   doc.setTextColor(...COLOR_ACCENT);
-  doc.text('WANDOR  |  TRAVEL ITINERARY', marginX, y);
+  doc.text('SAFAR  |  TRAVEL ITINERARY', marginX, y);
   y += 22;
 
   const title = t(meta.title?.trim() || `${plan.dailyItinerary.length}-Day ${plan.destination}`);
@@ -406,7 +406,7 @@ function generateVectorPdf(
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
     doc.setTextColor(...COLOR_MUTED);
-    doc.text('Wandor Travel Itinerary', marginX, A4_HEIGHT_PT - 20);
+    doc.text('SAFAR · Your Journey, Your Story.', marginX, A4_HEIGHT_PT - 20);
     doc.text(`Page ${p} of ${totalPages}`, A4_WIDTH_PT - marginX, A4_HEIGHT_PT - 20, {
       align: 'right',
     });
@@ -521,7 +521,7 @@ function generateUnicodeCanvasPdf(
 
   ctx.font = fontStr(10, 'bold');
   ctx.fillStyle = '#905831';
-  ctx.fillText('WANDOR  ·  TRAVEL ITINERARY', marginX, y);
+  ctx.fillText('SAFAR  ·  TRAVEL ITINERARY', marginX, y);
   y += Math.round(24 * CANVAS_SCALE);
 
   const title = meta.title?.trim() || `${plan.dailyItinerary.length}-Day ${plan.destination}`;
@@ -734,7 +734,7 @@ function generateUnicodeCanvasPdf(
 
       pageCtx.font = fontStr(8.5, 'normal');
       pageCtx.fillStyle = '#767676';
-      pageCtx.fillText('Wandor Travel Itinerary', marginX, footerY);
+      pageCtx.fillText('SAFAR Travel Itinerary', marginX, footerY);
       const pageLabel = `Page ${idx + 1} of ${totalPages}`;
       const labelWidth = pageCtx.measureText(pageLabel).width;
       pageCtx.fillText(pageLabel, CANVAS_W - marginX - labelWidth, footerY);

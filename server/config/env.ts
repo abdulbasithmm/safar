@@ -35,6 +35,14 @@ export function getOpenAiModel(): string {
   return process.env.OPENAI_MODEL?.trim() || 'gpt-4o-mini';
 }
 
+export function getUnsplashAccessKey(): string {
+  return process.env.UNSPLASH_ACCESS_KEY?.trim() || '';
+}
+
+export function getPexelsApiKey(): string {
+  return process.env.PEXELS_API_KEY?.trim() || '';
+}
+
 export const serverEnv = {
   nodeEnv: process.env.NODE_ENV || 'development',
   isProduction: process.env.NODE_ENV === 'production',
@@ -45,6 +53,12 @@ export const serverEnv = {
   },
   get openAiModel(): string {
     return getOpenAiModel();
+  },
+  get unsplashAccessKey(): string {
+    return getUnsplashAccessKey();
+  },
+  get pexelsApiKey(): string {
+    return getPexelsApiKey();
   },
   firebaseProjectId: firebaseConfig.projectId,
   firestoreDatabaseId: firebaseConfig.firestoreDatabaseId,

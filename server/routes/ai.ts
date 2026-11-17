@@ -47,7 +47,7 @@ aiRouter.post(
 
       if (!message) {
         res.status(400).json({
-          error: 'Please enter a message to chat with Wandor AI.',
+          error: 'Please enter a message to chat with SAFAR AI.',
           code: 'INVALID_MESSAGE',
         });
         return;

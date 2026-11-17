@@ -8,6 +8,7 @@ interface RateLimitBucket {
 export interface RateLimitOptions {
   windowMs: number;
   maxRequests: number;
+  message?: string;
 }
 
 export function createUserRateLimiter(options: RateLimitOptions) {
@@ -33,7 +34,9 @@ export function createUserRateLimiter(options: RateLimitOptions) {
       res.setHeader('X-RateLimit-Remaining', '0');
 
       res.status(429).json({
-        error: `Too many AI requests. Please wait ${retryAfterSeconds} seconds and try again.`,
+        error:
+          options.message ||
+          `Too many AI requests. Please wait ${retryAfterSeconds} seconds and try again.`,
         code: 'RATE_LIMIT_EXCEEDED',
         retryAfterSeconds,
       });

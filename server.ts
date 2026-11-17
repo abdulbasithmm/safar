@@ -5,8 +5,10 @@ import path from 'node:path';
 import { serverEnv } from './server/config/env.ts';
 import { aiRouter } from './server/routes/ai.ts';
 import { healthRouter } from './server/routes/health.ts';
+import { photosRouter } from './server/routes/photos.ts';
 import { tripsRouter } from './server/routes/trips.ts';
 import { AIServiceError } from './server/services/aiProvider.ts';
+import { PhotoServiceError } from './server/services/photoProvider.ts';
 
 async function startServer() {
   const app = express();
@@ -23,6 +25,7 @@ async function startServer() {
   app.use('/api/health', healthRouter);
   app.use('/api/ai', aiRouter);
   app.use('/api/trips', tripsRouter);
+  app.use('/api/photos', photosRouter);
 
   app.use('/api', (_req, res) => {
     res.status(404).json({
@@ -56,7 +59,7 @@ async function startServer() {
       return;
     }
 
-    if (err instanceof AIServiceError) {
+    if (err instanceof AIServiceError || err instanceof PhotoServiceError) {
       const safeStatus =
         err.statusCode === 502 ||
         err.statusCode === 503 ||

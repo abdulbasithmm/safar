@@ -103,7 +103,7 @@ export async function sendAiChatMessage(params: {
       throw new AIClientError(
         503,
         'PROXY_UNAVAILABLE',
-        'The Wandor AI service is warming up or temporarily unreachable. Please retry in a moment.',
+        'The SAFAR AI service is warming up or temporarily unreachable. Please retry in a moment.',
       );
     }
 
@@ -114,7 +114,7 @@ export async function sendAiChatMessage(params: {
         response.status,
         payload.code || 'AI_REQUEST_FAILED',
         payload.error ||
-          'Unable to get a response from Wandor AI right now. Please try again.',
+          'Unable to get a response from SAFAR AI right now. Please try again.',
         payload.retryAfterSeconds,
       );
     }
@@ -144,7 +144,7 @@ export async function sendAiChatMessage(params: {
       'NETWORK_ERROR',
       error instanceof Error
         ? error.message
-        : 'Network error communicating with Wandor AI.',
+        : 'Network error communicating with SAFAR AI.',
     );
   } finally {
     clearTimeout(timeout);
